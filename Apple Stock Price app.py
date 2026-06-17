@@ -5,146 +5,115 @@ import pickle
 import plotly.express as px
 import plotly.graph_objects as go
 
-# -----------------------------
+# =========================
 # PAGE CONFIG
-# -----------------------------
+# =========================
+
 st.set_page_config(
-    page_title="Apple Stock Price Prediction",
+    page_title="Apple Stock Forecast",
     page_icon="🍎",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="collapsed"
 )
 
-# -----------------------------
+# =========================
 # CUSTOM CSS
-# -----------------------------
+# =========================
+
 st.markdown("""
 <style>
 
-.main {
-    background-color: #f8fafc;
+#MainMenu {visibility:hidden;}
+footer {visibility:hidden;}
+header {visibility:hidden;}
+
+.stApp{
+    background: linear-gradient(135deg,#0f172a,#111827,#1e293b);
 }
 
-.big-title {
-    text-align:center;
-    font-size:48px;
-    font-weight:700;
-    color:#111827;
+/* Hero */
+.hero{
+    background: rgba(255,255,255,0.08);
+    backdrop-filter: blur(20px);
+    padding:40px;
+    border-radius:25px;
+    border:1px solid rgba(255,255,255,0.1);
+    margin-bottom:25px;
 }
 
-.sub-title {
-    text-align:center;
-    font-size:18px;
-    color:#6b7280;
-    margin-bottom:20px;
+.hero-title{
+    color:white;
+    font-size:52px;
+    font-weight:800;
 }
 
-.metric-box {
-    background:white;
+.hero-sub{
+    color:#cbd5e1;
+    font-size:20px;
+}
+
+/* KPI Cards */
+.kpi{
+    background: rgba(255,255,255,0.08);
+    backdrop-filter: blur(20px);
+    border-radius:20px;
     padding:20px;
-    border-radius:15px;
-    box-shadow:0px 4px 15px rgba(0,0,0,0.08);
+    text-align:center;
+    border:1px solid rgba(255,255,255,0.1);
 }
 
-footer {
-    visibility:hidden;
+.kpi-title{
+    color:#94a3b8;
+    font-size:14px;
+}
+
+.kpi-value{
+    color:white;
+    font-size:30px;
+    font-weight:bold;
+}
+
+/* Section Titles */
+.section{
+    color:white;
+    font-size:28px;
+    font-weight:700;
+    margin-top:20px;
+    margin-bottom:10px;
 }
 
 </style>
 """, unsafe_allow_html=True)
 
-# -----------------------------
-# LOAD FILES
-# -----------------------------
+# =========================
+# LOAD MODEL & DATA
+# =========================
+
 with open("apple_stock_model.pkl", "rb") as f:
     model = pickle.load(f)
 
 df = pd.read_csv("apple_stock_data.csv")
 
-# -----------------------------
-# HEADER
-# -----------------------------
-st.markdown(
-    "<div class='big-title'>🍎 Apple Stock Price Prediction</div>",
-    unsafe_allow_html=True
-)
+# =========================
+# HERO SECTION
+# =========================
 
-st.markdown(
-    "<div class='sub-title'>30-Day Future Stock Forecast using Machine Learning</div>",
-    unsafe_allow_html=True
-)
+st.markdown("""
+<div class="hero">
+    <div class="hero-title">
+        🍎 Apple Stock Forecasting Dashboard
+    </div>
+    <br>
+    <div class="hero-sub">
+        Machine Learning Powered 30-Day Future Stock Prediction
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
-st.markdown("---")
+# =========================
+# FORECAST GENERATION
+# =========================
 
-# -----------------------------
-# SIDEBAR
-# -----------------------------
-st.sidebar.image(
-    "https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg",
-    width=120
-)
-
-st.sidebar.title("Project Information")
-
-st.sidebar.info(
-"""
-Model Used: Linear Regression
-
-Features:
-• Lag_1
-• Lag_2
-• Lag_3
-• Lag_7
-• MA_7
-• MA_30
-
-Forecast Horizon:
-30 Days
-"""
-)
-
-# -----------------------------
-# PROJECT OVERVIEW
-# -----------------------------
-st.subheader("📌 Project Overview")
-
-st.write("""
-This project predicts Apple's future stock prices using
-Machine Learning and Time-Series Feature Engineering.
-
-The model was trained using:
-
-- Previous stock closing prices (Lag Features)
-- Moving averages
-- Historical stock trends
-
-After comparing multiple models, Linear Regression
-provided the best performance and was selected for
-future forecasting.
-""")
-
-st.markdown("---")
-
-# -----------------------------
-# HISTORICAL CHART
-# -----------------------------
-st.subheader("📈 Historical Stock Trend")
-
-fig_hist = px.line(
-    df,
-    y="Close",
-    title="Historical Apple Closing Price"
-)
-
-fig_hist.update_layout(
-    height=500,
-    template="plotly_white"
-)
-
-st.plotly_chart(fig_hist, use_container_width=True)
-
-# -----------------------------
-# FUTURE FORECAST
-# -----------------------------
 history = list(df["Close"])
 
 future_predictions = []
@@ -160,12 +129,12 @@ for i in range(30):
     ma_30 = np.mean(history[-30:])
 
     X_future = pd.DataFrame({
-        "Lag_1": [lag_1],
-        "Lag_2": [lag_2],
-        "Lag_3": [lag_3],
-        "Lag_7": [lag_7],
-        "MA_7": [ma_7],
-        "MA_30": [ma_30]
+        "Lag_1":[lag_1],
+        "Lag_2":[lag_2],
+        "Lag_3":[lag_3],
+        "Lag_7":[lag_7],
+        "MA_7":[ma_7],
+        "MA_30":[ma_30]
     })
 
     pred = model.predict(X_future)[0]
@@ -174,38 +143,83 @@ for i in range(30):
     history.append(pred)
 
 future_df = pd.DataFrame({
-    "Day": range(1, 31),
+    "Day": range(1,31),
     "Predicted_Close": future_predictions
 })
 
-# -----------------------------
+# =========================
 # KPI CARDS
-# -----------------------------
-st.subheader("📊 Forecast Insights")
+# =========================
 
-col1, col2, col3 = st.columns(3)
+current_price = df["Close"].iloc[-1]
 
-col1.metric(
-    "Highest Forecast",
-    f"${future_df['Predicted_Close'].max():.2f}"
+col1,col2,col3,col4 = st.columns(4)
+
+with col1:
+    st.markdown(f"""
+    <div class="kpi">
+        <div class="kpi-title">Current Price</div>
+        <div class="kpi-value">${current_price:.2f}</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+with col2:
+    st.markdown(f"""
+    <div class="kpi">
+        <div class="kpi-title">Forecast High</div>
+        <div class="kpi-value">${future_df['Predicted_Close'].max():.2f}</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+with col3:
+    st.markdown(f"""
+    <div class="kpi">
+        <div class="kpi-title">Forecast Low</div>
+        <div class="kpi-value">${future_df['Predicted_Close'].min():.2f}</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+with col4:
+    st.markdown(f"""
+    <div class="kpi">
+        <div class="kpi-title">Average Forecast</div>
+        <div class="kpi-value">${future_df['Predicted_Close'].mean():.2f}</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+st.write("")
+
+# =========================
+# HISTORICAL CHART
+# =========================
+
+st.markdown(
+    '<div class="section">📈 Historical Stock Performance</div>',
+    unsafe_allow_html=True
 )
 
-col2.metric(
-    "Lowest Forecast",
-    f"${future_df['Predicted_Close'].min():.2f}"
+fig_hist = px.line(
+    df,
+    y="Close",
+    template="plotly_dark"
 )
 
-col3.metric(
-    "Average Forecast",
-    f"${future_df['Predicted_Close'].mean():.2f}"
+fig_hist.update_layout(
+    paper_bgcolor='rgba(0,0,0,0)',
+    plot_bgcolor='rgba(0,0,0,0)',
+    height=500
 )
 
-st.markdown("---")
+st.plotly_chart(fig_hist, use_container_width=True)
 
-# -----------------------------
+# =========================
 # FORECAST CHART
-# -----------------------------
-st.subheader("🚀 30-Day Forecast")
+# =========================
+
+st.markdown(
+    '<div class="section">🚀 30-Day Future Forecast</div>',
+    unsafe_allow_html=True
+)
 
 fig_future = go.Figure()
 
@@ -219,61 +233,37 @@ fig_future.add_trace(
 )
 
 fig_future.update_layout(
-    title="Predicted Apple Stock Prices (Next 30 Days)",
-    template="plotly_white",
+    template="plotly_dark",
+    paper_bgcolor='rgba(0,0,0,0)',
+    plot_bgcolor='rgba(0,0,0,0)',
     height=550
 )
 
 st.plotly_chart(fig_future, use_container_width=True)
 
-# -----------------------------
+# =========================
 # FORECAST TABLE
-# -----------------------------
-st.subheader("📅 Forecast Table")
+# =========================
+
+st.markdown(
+    '<div class="section">📅 Forecast Data</div>',
+    unsafe_allow_html=True
+)
 
 st.dataframe(
     future_df,
     use_container_width=True
 )
 
-# -----------------------------
+# =========================
 # DOWNLOAD BUTTON
-# -----------------------------
+# =========================
+
 csv = future_df.to_csv(index=False)
 
 st.download_button(
-    label="⬇ Download Forecast CSV",
-    data=csv,
-    file_name="Apple_30Day_Forecast.csv",
-    mime="text/csv"
-)
-
-st.markdown("---")
-
-# -----------------------------
-# CONCLUSION
-# -----------------------------
-st.subheader("✅ Conclusion")
-
-st.success(
-"""
-The model forecasts Apple's stock prices for the next
-30 days using historical patterns and engineered features.
-
-This project demonstrates:
-✔ Time Series Forecasting
-✔ Feature Engineering
-✔ Machine Learning
-✔ Data Visualization
-✔ Streamlit Deployment
-"""
-)
-
-st.markdown(
-    """
-    <center>
-    <h4>Developed by Shailja Singh</h4>
-    </center>
-    """,
-    unsafe_allow_html=True
+    "⬇ Download Forecast",
+    csv,
+    "Apple_30_Day_Forecast.csv",
+    "text/csv"
 )
